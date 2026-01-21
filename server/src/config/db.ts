@@ -7,6 +7,7 @@ dotenv.config();
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 pool.on('error', (err) => {
@@ -18,17 +19,39 @@ export const query = (text: string, params?: any[]) => pool.query(text, params);
 export const getClient = () => pool.connect();
 
 export const runMigrations = async () => {
+    console.log('[DB] Starting migrations...');
     const client = await pool.connect();
     try {
-        const schemaPath = path.join(__dirname, '..', 'db', 'schema.sql');
-        const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+        // Try multiple possible paths for schema.sql
+        const possiblePaths = [
+            path.join(__dirname, '..', 'db', 'schema.sql'),
+            path.join(process.cwd(), 'src', 'db', 'schema.sql'),
+            path.join(process.cwd(), 'dist', 'db', 'schema.sql')
+        ];
+
+        let schemaSql = '';
+        let foundPath = '';
+
+        for (const p of possiblePaths) {
+            if (fs.existsSync(p)) {
+                schemaSql = fs.readFileSync(p, 'utf8');
+                foundPath = p;
+                break;
+            }
+        }
+
+        if (!schemaSql) {
+            throw new Error(`Could not find schema.sql in any of: ${possiblePaths.join(', ')}`);
+        }
+
+        console.log(`[DB] Using schema from: ${foundPath}`);
         await client.query('BEGIN');
         await client.query(schemaSql);
         await client.query('COMMIT');
-        console.log('Migrations completed successfully');
+        console.log('[DB] Migrations completed successfully');
     } catch (err) {
-        await client.query('ROLLBACK');
-        console.error('Migration failed', err);
+        await client.query('ROLLBACK').catch(() => { });
+        console.error('[DB] Migration failed:', err);
         throw err;
     } finally {
         client.release();
