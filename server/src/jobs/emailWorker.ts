@@ -71,11 +71,20 @@ const processEmailJob = async (job: Job) => {
         // 3. Send Email
         const transporter = await createTransporter();
 
+        const stripHtml = (html: string) =>
+            (html || '')
+                .replace(/<style[\s\S]*?<\/style>/gi, '')
+                .replace(/<script[\s\S]*?<\/script>/gi, '')
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
         const info = await transporter.sendMail({
             from: `"${email.sender_name}" <${email.sender_email}>`,
             to: email.recipient,
             subject: email.subject,
-            text: email.body, // or html
+            text: stripHtml(email.body),
+            html: email.body,
         });
 
         console.log(`Email sent: ${info.messageId}`);

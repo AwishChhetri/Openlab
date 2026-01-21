@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import { ArrowLeft, Paperclip, Clock, List, Italic, Bold, Underline, AlignLeft, ListOrdered, Quote, Code, RotateCcw, Send, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,6 +8,7 @@ export const Compose = () => {
     const navigate = useNavigate();
     const [senders, setSenders] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const editorRef = useRef<HTMLDivElement | null>(null);
     const [formData, setFormData] = useState({
         senderId: '',
         name: 'New Campaign',
@@ -16,6 +18,11 @@ export const Compose = () => {
         delayBetweenMs: '00',
         hourlyLimit: '00'
     });
+    const [editorFontSize, setEditorFontSize] = useState<'sm' | 'md' | 'lg'>('lg');
+    const [editorAlign, setEditorAlign] = useState<'left' | 'center' | 'right'>('left');
+    const [showFontMenu, setShowFontMenu] = useState(false);
+    const [showAlignMenu, setShowAlignMenu] = useState(false);
+    const [isEditorEmpty, setIsEditorEmpty] = useState(true);
     const [recipientInput, setRecipientInput] = useState('');
     const [pills, setPills] = useState<string[]>([]);
     const [showTimer, setShowTimer] = useState(false);
@@ -84,9 +91,20 @@ export const Compose = () => {
         fetchSenders();
     }, []);
 
+    // Keep editor DOM in sync when body changes programmatically (e.g. initial load/reset)
+    useEffect(() => {
+        if (!editorRef.current) return;
+        const current = editorRef.current.innerHTML;
+        if (current !== formData.body) {
+            editorRef.current.innerHTML = formData.body || '';
+        }
+        const text = (editorRef.current.textContent || '').replace(/\u00A0/g, ' ').trim();
+        setIsEditorEmpty(text.length === 0);
+    }, [formData.body]);
+
     const handleSubmit = async () => {
         if (pills.length === 0) {
-            alert('Please add at least one recipient');
+            toast.warn('Please add at least one recipient');
             return;
         }
         setLoading(true);
@@ -100,12 +118,37 @@ export const Compose = () => {
             await axios.post('http://localhost:3000/api/campaigns/schedule', submitData, {
                 withCredentials: true
             });
+            toast.success('Mail scheduled');
             navigate('/dashboard');
         } catch (err: any) {
-            alert(err.response?.data?.error || 'Failed to schedule');
+            toast.error(err.response?.data?.error || 'Failed to schedule');
         } finally {
             setLoading(false);
         }
+    };
+
+    const focusEditor = () => {
+        editorRef.current?.focus();
+    };
+
+    const preventBlur = (e: React.MouseEvent) => {
+        // Keep selection alive; otherwise execCommand may not apply where the cursor/selection was.
+        e.preventDefault();
+    };
+
+    const exec = (command: string, value?: string) => {
+        focusEditor();
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        document.execCommand(command, false, value);
+        const html = editorRef.current?.innerHTML ?? '';
+        setFormData(prev => ({ ...prev, body: html }));
+    };
+
+    const handleEditorInput = () => {
+        const html = editorRef.current?.innerHTML ?? '';
+        setFormData(prev => ({ ...prev, body: html }));
+        const text = (editorRef.current?.textContent || '').replace(/\u00A0/g, ' ').trim();
+        setIsEditorEmpty(text.length === 0);
     };
 
     return (
@@ -262,37 +305,118 @@ export const Compose = () => {
 
                 {/* Editor Area */}
                 <div className="space-y-4 pt-4 border-t border-slate-50">
-                    <div className="flex items-center gap-6 text-slate-300 overflow-x-auto pb-2 no-scrollbar">
-                        <RotateCcw size={18} className="cursor-pointer hover:text-slate-600" />
-                        <RotateCcw size={18} className="cursor-pointer hover:text-slate-600 rotate-180" />
+                    <div className="flex items-center gap-6 text-slate-300 overflow-x-auto overflow-y-visible pb-2 no-scrollbar relative">
+                        <RotateCcw
+                            size={18}
+                            className="cursor-pointer hover:text-slate-600"
+                            onMouseDown={preventBlur}
+                            onClick={() => exec('undo')}
+                        />
+                        <RotateCcw
+                            size={18}
+                            className="cursor-pointer hover:text-slate-600 rotate-180"
+                            onMouseDown={preventBlur}
+                            onClick={() => exec('redo')}
+                        />
                         <div className="h-4 w-[1px] bg-slate-100" />
-                        <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-600">
+                        <div
+                            className="flex items-center gap-1.5 cursor-pointer hover:text-slate-600 relative"
+                            onMouseDown={preventBlur}
+                            onClick={() => { setShowFontMenu(v => !v); setShowAlignMenu(false); }}
+                        >
                             <span className="text-[13px] font-bold">T</span><span className="text-[10px] font-bold">T</span>
                             <ChevronDown size={12} />
+                            {showFontMenu && (
+                                <div className="absolute left-0 top-full mt-2 bg-white border border-slate-100 shadow-xl rounded-xl p-2 z-50 min-w-[160px]">
+                                    {[
+                                        { label: 'Small', value: 'sm' as const },
+                                        { label: 'Normal', value: 'md' as const },
+                                        { label: 'Large', value: 'lg' as const },
+                                    ].map(item => (
+                                        <button
+                                            key={item.value}
+                                            type="button"
+                                            onMouseDown={preventBlur}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditorFontSize(item.value);
+                                                exec('fontSize', item.value === 'sm' ? '2' : item.value === 'md' ? '3' : '5');
+                                                setShowFontMenu(false);
+                                            }}
+                                            className={`w-full text-left px-3 py-2 rounded-lg text-[13px] font-bold ${editorFontSize === item.value ? 'text-slate-900 bg-slate-50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
+                                        >
+                                            {item.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <div className="h-4 w-[1px] bg-slate-100" />
-                        <Bold size={18} className="cursor-pointer hover:text-slate-600" />
-                        <Italic size={18} className="cursor-pointer hover:text-slate-600" />
-                        <Underline size={18} className="cursor-pointer hover:text-slate-600" />
+                        <Bold size={18} className="cursor-pointer hover:text-slate-600" onMouseDown={preventBlur} onClick={() => exec('bold')} />
+                        <Italic size={18} className="cursor-pointer hover:text-slate-600" onMouseDown={preventBlur} onClick={() => exec('italic')} />
+                        <Underline size={18} className="cursor-pointer hover:text-slate-600" onMouseDown={preventBlur} onClick={() => exec('underline')} />
                         <div className="h-4 w-[1px] bg-slate-100" />
-                        <AlignLeft size={18} className="cursor-pointer hover:text-slate-600" />
-                        <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-600">
+                        <AlignLeft
+                            size={18}
+                            className="cursor-pointer hover:text-slate-600"
+                            onMouseDown={preventBlur}
+                            onClick={() => { setEditorAlign('left'); exec('justifyLeft'); }}
+                        />
+                        <div
+                            className="flex items-center gap-1.5 cursor-pointer hover:text-slate-600 relative"
+                            onMouseDown={preventBlur}
+                            onClick={() => { setShowAlignMenu(v => !v); setShowFontMenu(false); }}
+                        >
                             <AlignLeft size={18} className="scale-y-[-1]" />
                             <ChevronDown size={12} />
+                            {showAlignMenu && (
+                                <div className="absolute left-0 top-full mt-2 bg-white border border-slate-100 shadow-xl rounded-xl p-2 z-50 min-w-[160px]">
+                                    {[
+                                        { label: 'Left', value: 'left' as const },
+                                        { label: 'Center', value: 'center' as const },
+                                        { label: 'Right', value: 'right' as const },
+                                    ].map(item => (
+                                        <button
+                                            key={item.value}
+                                            type="button"
+                                            onMouseDown={preventBlur}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditorAlign(item.value);
+                                                exec(item.value === 'left' ? 'justifyLeft' : item.value === 'center' ? 'justifyCenter' : 'justifyRight');
+                                                setShowAlignMenu(false);
+                                            }}
+                                            className={`w-full text-left px-3 py-2 rounded-lg text-[13px] font-bold ${editorAlign === item.value ? 'text-slate-900 bg-slate-50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
+                                        >
+                                            {item.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <div className="h-4 w-[1px] bg-slate-100" />
-                        <List size={18} className="cursor-pointer hover:text-slate-600" />
-                        <ListOrdered size={18} className="cursor-pointer hover:text-slate-600" />
+                        <List size={18} className="cursor-pointer hover:text-slate-600" onMouseDown={preventBlur} onClick={() => exec('insertUnorderedList')} />
+                        <ListOrdered size={18} className="cursor-pointer hover:text-slate-600" onMouseDown={preventBlur} onClick={() => exec('insertOrderedList')} />
                         <div className="h-4 w-[1px] bg-slate-100" />
-                        <Quote size={18} className="cursor-pointer hover:text-slate-600" />
-                        <Code size={18} className="cursor-pointer hover:text-slate-600" />
+                        <Quote size={18} className="cursor-pointer hover:text-slate-600" onMouseDown={preventBlur} onClick={() => exec('formatBlock', '<blockquote>')} />
+                        <Code size={18} className="cursor-pointer hover:text-slate-600" onMouseDown={preventBlur} onClick={() => exec('formatBlock', '<pre>')} />
                     </div>
-                    <textarea
-                        placeholder="Type Your Reply..."
-                        className="w-full min-h-[400px] text-slate-900 text-lg leading-relaxed focus:outline-none resize-none font-sans"
-                        value={formData.body}
-                        onChange={e => setFormData({ ...formData, body: e.target.value })}
-                    />
+                    <div className="relative">
+                        {isEditorEmpty && (
+                            <div className="pointer-events-none absolute top-4 left-4 text-slate-400 text-lg">
+                                Type Your Reply...
+                            </div>
+                        )}
+                        <div
+                            ref={editorRef}
+                            contentEditable
+                            suppressContentEditableWarning
+                            onInput={handleEditorInput}
+                            onMouseDown={() => { setShowAlignMenu(false); setShowFontMenu(false); }}
+                            className={`w-full min-h-[400px] text-slate-900 leading-relaxed focus:outline-none font-sans whitespace-pre-wrap px-4 py-4 ${editorFontSize === 'sm' ? 'text-sm' : editorFontSize === 'md' ? 'text-base' : 'text-lg'}`}
+                            style={{ textAlign: editorAlign }}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

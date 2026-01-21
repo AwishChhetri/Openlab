@@ -13,11 +13,20 @@ interface Email {
     sent_at: string;
 }
 
+const stripHtml = (html: string) =>
+    (html || '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
 export const EmailDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [email, setEmail] = useState<Email | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isStarred, setIsStarred] = useState(false);
 
     useEffect(() => {
         const fetchEmail = async () => {
@@ -57,9 +66,21 @@ export const EmailDetail = () => {
                 </div>
                 <div className="flex items-center gap-8">
                     <div className="flex items-center gap-6 text-slate-300">
-                        <Star size={20} className="hover:text-yellow-400 cursor-pointer transition-colors" />
-                        <Archive size={20} className="hover:text-slate-600 cursor-pointer transition-colors" />
-                        <Trash2 size={20} className="hover:text-rose-500 cursor-pointer transition-colors" />
+                        <Star
+                            size={20}
+                            className={`cursor-pointer transition-colors ${isStarred ? 'text-yellow-400' : 'text-slate-300 hover:text-yellow-400'}`}
+                            onClick={() => setIsStarred(prev => !prev)}
+                        />
+                        <Archive
+                            size={20}
+                            className="hover:text-slate-600 cursor-pointer transition-colors"
+                            onClick={() => navigate('/dashboard')}
+                        />
+                        <Trash2
+                            size={20}
+                            className="hover:text-rose-500 cursor-pointer transition-colors"
+                            onClick={() => navigate(-1)}
+                        />
                     </div>
                     <div className="w-[1px] h-6 bg-slate-100 mx-2" />
                     <img
@@ -71,36 +92,43 @@ export const EmailDetail = () => {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto bg-white px-14 py-12">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white px-4 md:px-10 py-8">
+            <div className="mx-auto w-full max-w-6xl">
                 <div className="flex items-start justify-between mb-12">
-                    <div className="flex items-center gap-5">
-                        <div className="w-12 h-12 bg-[#00A854] rounded-full flex items-center justify-center text-white font-black text-xl shadow-lg shadow-[#00A854]/20">
-                            {email.recipient[0].toUpperCase()}
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-black text-slate-900 text-[15px]">{email.recipient.split('@')[0]}</h3>
-                                <span className="text-slate-300 text-[13px] font-medium">{"<"}{email.recipient}{">"}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                                <p className="text-[12px] text-slate-400 font-black uppercase tracking-tight">from me</p>
-                                <ChevronDown size={14} className="text-slate-300" />
-                            </div>
-                        </div>
+                <div className="flex items-center gap-5">
+                    <div className="w-12 h-12 bg-[#00A854] rounded-full flex items-center justify-center text-white font-black text-xl shadow-lg shadow-[#00A854]/20">
+                    {email.recipient[0].toUpperCase()}
                     </div>
-                    <div className="text-right">
-                        <p className="text-[13px] font-bold text-slate-400">
-                            {formattedDate}
+                    <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-black text-slate-900 text-[15px] truncate">
+                        {email.recipient.split('@')[0]}
+                        </h3>
+                        <span className="text-slate-300 text-[13px] font-medium truncate">
+                        {"<"}{email.recipient}{">"}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-[12px] text-slate-400 font-black uppercase tracking-tight">
+                        from me
                         </p>
+                        <ChevronDown size={14} className="text-slate-300" />
+                    </div>
                     </div>
                 </div>
 
-                <div className="max-w-4xl">
-                    <div className="text-slate-900 text-[16px] leading-relaxed whitespace-pre-wrap mb-10 font-medium">
-                        {email.body}
-                    </div>
+                <p className="text-[13px] font-bold text-slate-400 shrink-0">
+                    {formattedDate}
+                </p>
                 </div>
+
+                <div
+                className="prose prose-slate max-w-none text-[16px] leading-relaxed font-medium"
+                dangerouslySetInnerHTML={{ __html: email.body }}
+                />
             </div>
+            </div>
+
         </div>
     );
 };

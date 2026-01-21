@@ -14,6 +14,16 @@ interface Email {
     sender_name?: string;
 }
 
+const stripHtml = (html: string) =>
+    (html || '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+const truncate = (text: string, len = 120) =>
+    text.length > len ? text.slice(0, len) + '…' : text;
+          
 export const Dashboard = () => {
     const [emails, setEmails] = useState<Email[]>([]);
     const [loading, setLoading] = useState(true);
@@ -91,62 +101,72 @@ export const Dashboard = () => {
                     <button className="hover:text-[#00A854] transition-colors"><RotateCcw size={18} /></button>
                 </div>
             </div>
-
+        
             {/* Email List */}
             <div className="flex-1 overflow-y-auto">
-                {loading ? (
-                    <div className="h-full flex items-center justify-center text-slate-400 font-medium italic">
-                        Gathering your messages...
-                    </div>
-                ) : emails.length === 0 ? (
-                    <div className="h-full flex items-center justify-center text-slate-400 font-medium italic">
-                        No messages found in this folder.
-                    </div>
-                ) : (
-                    <div className="divide-y divide-slate-50">
-                        {emails.map((email: Email) => (
-                            <div
-                                key={email.id}
-                                onClick={() => navigate(`/emails/${email.id}`)}
-                                className="px-10 py-5 flex items-center justify-between hover:bg-slate-50/50 cursor-pointer group transition-all border-b border-slate-50 last:border-0"
-                            >
-                                <div className="flex items-center gap-6 flex-1 min-w-0">
-                                    <div className="w-[180px] flex-shrink-0">
-                                        <p className="font-extrabold text-slate-900 text-[13px] truncate">
-                                            {isSentView ? `To: ${email.recipient.split('@')[0]}` : `To: ${email.recipient.split('@')[0]}`}
-                                        </p>
-                                    </div>
+            {loading ? (
+                <div className="h-full flex items-center justify-center text-slate-400 font-medium italic">
+                Gathering your messages...
+                </div>
+            ) : emails.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-slate-400 font-medium italic">
+                No messages found in this folder.
+                </div>
+            ) : (
+                <div className="divide-y divide-slate-50">
+                {emails.map((email: Email) => (
+                    <div
+                    key={email.id}
+                    onClick={() => navigate(`/emails/${email.id}`)}
+                    className="px-10 py-5 flex items-center justify-between hover:bg-slate-50/50 cursor-pointer group transition-all border-b border-slate-50 last:border-0"
+                    >
+                    <div className="flex items-center gap-6 flex-1 min-w-0">
+                        <div className="w-[180px] flex-shrink-0">
+                        <p className="font-extrabold text-slate-900 text-[13px] truncate">
+                            To: {email.recipient.split('@')[0]}
+                        </p>
+                        </div>
 
-                                    <div className="flex items-center gap-4 min-w-0 flex-1">
-                                        {email.status === 'SCHEDULED' && (
-                                            <div className="flex-shrink-0 bg-[#FFF2E2] text-[#FF9C28] px-3 py-1 rounded-full text-[11px] font-black flex items-center gap-1.5 border border-[#FFE7C8]">
-                                                <div className="flex items-center gap-1">
-                                                    <Clock size={12} className="stroke-[3]" />
-                                                    {new Date(email.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', weekday: 'short' })}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {email.status === 'SENT' && (
-                                            <div className="flex-shrink-0 bg-[#F5F5F7] text-slate-400 px-3 py-1 rounded-full text-[11px] font-black border border-slate-100 flex items-center uppercase tracking-tight">
-                                                Sent
-                                            </div>
-                                        )}
-                                        <div className="flex items-center gap-1.5 min-w-0 truncate">
-                                            <span className="font-extrabold text-[#1a1a1a] text-[13px] shrink-0">{email.subject}</span>
-                                            <span className="text-slate-400 truncate text-[13px]"> - {email.body}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-4 ml-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Star size={18} className="text-slate-300 hover:text-yellow-400" />
-                                    <Paperclip size={18} className="text-slate-300" />
-                                </div>
+                        <div className="flex items-center gap-4 min-w-0 flex-1">
+                        {email.status === 'SCHEDULED' && (
+                            <div className="flex-shrink-0 bg-[#FFF2E2] text-[#FF9C28] px-3 py-1 rounded-full text-[11px] font-black flex items-center gap-1.5 border border-[#FFE7C8]">
+                            <Clock size={12} className="stroke-[3]" />
+                            {new Date(email.scheduled_at).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                weekday: 'short',
+                            })}
                             </div>
-                        ))}
+                        )}
+
+                        {email.status === 'SENT' && (
+                            <div className="flex-shrink-0 bg-[#F5F5F7] text-slate-400 px-3 py-1 rounded-full text-[11px] font-black border border-slate-100 uppercase">
+                            Sent
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-extrabold text-[#1a1a1a] text-[13px] shrink-0">
+                            {email.subject}
+                            </span>
+                            <span className="text-slate-400 text-[13px] truncate">
+                            {' - '}
+                            {truncate(stripHtml(email.body))}
+                            </span>
+                        </div>
+                        </div>
                     </div>
-                )}
+
+                    <div className="flex items-center gap-4 ml-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Star size={18} className="text-slate-300 hover:text-yellow-400" />
+                        <Paperclip size={18} className="text-slate-300" />
+                    </div>
+                    </div>
+                ))}
+                </div>
+            )}
             </div>
+
         </div>
     );
 };
