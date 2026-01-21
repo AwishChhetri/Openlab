@@ -39,7 +39,7 @@ services:
       - key: SESSION_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://your-vercel-frontend-url.vercel.app # UPDATE THIS
+        value: https://email-scheduler-api-x4np.onrender.com # UPDATE THIS
       - key: GOOGLE_CLIENT_ID
         sync: false # Set in dashboard
       - key: GOOGLE_CLIENT_SECRET
