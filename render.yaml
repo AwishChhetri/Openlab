@@ -53,12 +53,15 @@ services:
       - key: ETHEREAL_APP_PASSWORD
         sync: false
 
-  # 3. Email Worker (Background Worker - Node.js Runtime)
-  - type: worker
+  # 3. Email Worker (Web Service running worker process)
+  # NOTE: Using 'web' type instead of 'worker' because Render free tier
+  # doesn't reliably support background workers. This service runs the
+  # worker process but doesn't expose an HTTP endpoint.
+  - type: web
     name: email-scheduler-worker
     runtime: node
     rootDir: server
-    plan: free # Note: Render free tier support for background workers varies by region.
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: npm run start:worker
     envVars:
@@ -82,3 +85,5 @@ services:
         sync: false
       - key: ETHEREAL_APP_PASSWORD
         sync: false
+      - key: PORT
+        value: 3001
