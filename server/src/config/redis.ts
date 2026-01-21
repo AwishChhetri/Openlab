@@ -7,15 +7,29 @@ dotenv.config();
 const createRedisConfig = (): RedisOptions | string => {
     // If REDIS_URL is provided (Railway, Render, etc.), use it directly
     if (process.env.REDIS_URL) {
+        console.log('[Redis] Using REDIS_URL connection');
         return process.env.REDIS_URL;
     }
 
-    // Otherwise, use host/port configuration (local development)
-    return {
+    // Otherwise, use host/port/password configuration
+    console.log('[Redis] Using host/port configuration:', {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: process.env.REDIS_PORT || '6379',
+        hasPassword: !!process.env.REDIS_PASSWORD
+    });
+
+    const config: RedisOptions = {
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT || '6379'),
         maxRetriesPerRequest: null,
     };
+
+    // Add password if provided
+    if (process.env.REDIS_PASSWORD) {
+        config.password = process.env.REDIS_PASSWORD;
+    }
+
+    return config;
 };
 
 const redisConfig = createRedisConfig();
