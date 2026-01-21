@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Clock, Send, ChevronDown } from 'lucide-react';
@@ -30,7 +30,7 @@ export const Shell = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await axios.get('http://localhost:3000/api/campaigns/stats/summary', { withCredentials: true });
+                const res = await api.get('/api/campaigns/stats/summary');
                 setStats({
                     sent: parseInt(res.data.sent || '0'),
                     scheduled: parseInt(res.data.scheduled || '0')

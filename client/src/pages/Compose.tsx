@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import { toast } from 'react-toastify';
 import { ArrowLeft, Paperclip, Clock, List, Italic, Bold, Underline, AlignLeft, ListOrdered, Quote, Code, RotateCcw, Send, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -79,7 +79,7 @@ export const Compose = () => {
     useEffect(() => {
         const fetchSenders = async () => {
             try {
-                const res = await axios.get('http://localhost:3000/api/senders', { withCredentials: true });
+                const res = await api.get('/api/senders');
                 setSenders(res.data);
                 if (res.data.length > 0) {
                     setFormData(prev => ({ ...prev, senderId: res.data[0].id }));
@@ -115,9 +115,7 @@ export const Compose = () => {
         };
 
         try {
-            await axios.post('http://localhost:3000/api/campaigns/schedule', submitData, {
-                withCredentials: true
-            });
+            await api.post('/api/campaigns/schedule', submitData);
             toast.success('Mail scheduled');
             navigate('/dashboard');
         } catch (err: any) {

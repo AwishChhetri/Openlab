@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Trash2, ChevronDown, Archive } from 'lucide-react';
 
@@ -13,13 +13,6 @@ interface Email {
     sent_at: string;
 }
 
-const stripHtml = (html: string) =>
-    (html || '')
-        .replace(/<style[\s\S]*?<\/style>/gi, '')
-        .replace(/<script[\s\S]*?<\/script>/gi, '')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
 
 export const EmailDetail = () => {
     const { id } = useParams();
@@ -31,7 +24,7 @@ export const EmailDetail = () => {
     useEffect(() => {
         const fetchEmail = async () => {
             try {
-                const res = await axios.get(`http://localhost:3000/api/campaigns/emails/${id}`, { withCredentials: true });
+                const res = await api.get(`/api/campaigns/emails/${id}`);
                 setEmail(res.data);
             } catch (err) {
                 console.error('Error fetching email details:', err);
@@ -93,40 +86,40 @@ export const EmailDetail = () => {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white px-4 md:px-10 py-8">
-            <div className="mx-auto w-full max-w-6xl">
-                <div className="flex items-start justify-between mb-12">
-                <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 bg-[#00A854] rounded-full flex items-center justify-center text-white font-black text-xl shadow-lg shadow-[#00A854]/20">
-                    {email.recipient[0].toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-black text-slate-900 text-[15px] truncate">
-                        {email.recipient.split('@')[0]}
-                        </h3>
-                        <span className="text-slate-300 text-[13px] font-medium truncate">
-                        {"<"}{email.recipient}{">"}
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                        <p className="text-[12px] text-slate-400 font-black uppercase tracking-tight">
-                        from me
+                <div className="mx-auto w-full max-w-6xl">
+                    <div className="flex items-start justify-between mb-12">
+                        <div className="flex items-center gap-5">
+                            <div className="w-12 h-12 bg-[#00A854] rounded-full flex items-center justify-center text-white font-black text-xl shadow-lg shadow-[#00A854]/20">
+                                {email.recipient[0].toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <h3 className="font-black text-slate-900 text-[15px] truncate">
+                                        {email.recipient.split('@')[0]}
+                                    </h3>
+                                    <span className="text-slate-300 text-[13px] font-medium truncate">
+                                        {"<"}{email.recipient}{">"}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <p className="text-[12px] text-slate-400 font-black uppercase tracking-tight">
+                                        from me
+                                    </p>
+                                    <ChevronDown size={14} className="text-slate-300" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <p className="text-[13px] font-bold text-slate-400 shrink-0">
+                            {formattedDate}
                         </p>
-                        <ChevronDown size={14} className="text-slate-300" />
                     </div>
-                    </div>
-                </div>
 
-                <p className="text-[13px] font-bold text-slate-400 shrink-0">
-                    {formattedDate}
-                </p>
+                    <div
+                        className="prose prose-slate max-w-none text-[16px] leading-relaxed font-medium"
+                        dangerouslySetInnerHTML={{ __html: email.body }}
+                    />
                 </div>
-
-                <div
-                className="prose prose-slate max-w-none text-[16px] leading-relaxed font-medium"
-                dangerouslySetInnerHTML={{ __html: email.body }}
-                />
-            </div>
             </div>
 
         </div>

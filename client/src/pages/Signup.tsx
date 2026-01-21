@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { Link } from 'react-router-dom';
+import api from '../api/axios';
 
 export const Signup = () => {
-  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,10 +26,9 @@ export const Signup = () => {
 
     setLoading(true);
     try {
-      await axios.post(
-        'http://localhost:3000/api/auth/register',
-        { name, email, password },
-        { withCredentials: true }
+      await api.post(
+        '/api/auth/register',
+        { name, email, password }
       );
       // Full reload so AuthProvider re-checks /me with the new session
       window.location.href = '/dashboard';

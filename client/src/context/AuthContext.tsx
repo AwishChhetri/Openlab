@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import axios from 'axios';
+import api, { API_URL } from '../api/axios';
 
 interface User {
     id: string;
@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const res = await axios.get('http://localhost:3000/api/auth/me', { withCredentials: true });
+                const res = await api.get('/api/auth/me');
                 setUser(res.data);
             } catch (err) {
                 setUser(null);
@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const logout = () => {
-        window.location.href = 'http://localhost:3000/api/auth/logout';
+        window.location.href = `${API_URL}/api/auth/logout`;
     };
 
     return (

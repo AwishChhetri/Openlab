@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api, { API_URL } from '../api/axios';
 
 export const Login = () => {
     const navigate = useNavigate();
@@ -10,7 +10,7 @@ export const Login = () => {
     const [loading, setLoading] = useState(false);
 
     const handleGoogleLogin = () => {
-        window.location.href = 'http://localhost:3000/api/auth/google';
+        window.location.href = `${API_URL}/api/auth/google`;
     };
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -19,9 +19,8 @@ export const Login = () => {
         setLoading(true);
 
         try {
-            await axios.post('http://localhost:3000/api/auth/login',
-                { email, password },
-                { withCredentials: true }
+            await api.post('/api/auth/login',
+                { email, password }
             );
             navigate('/dashboard');
         } catch (err: any) {
