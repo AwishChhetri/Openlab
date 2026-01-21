@@ -2,6 +2,10 @@
 
 This project can be deployed to Railway with separate services for API and Worker.
 
+## Important: Root Directory Configuration
+
+**CRITICAL**: When creating services in Railway, you MUST set the **Root Directory** to `server` in the service settings. This is because the project uses a monorepo structure.
+
 ## Quick Setup
 
 ### 1. Create Services in Railway Dashboard
