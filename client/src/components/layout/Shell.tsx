@@ -50,7 +50,7 @@ export const Shell = () => {
             <aside className="w-[280px] border-r border-slate-100 flex flex-col fixed h-full bg-white z-10">
                 <div className="p-8">
                     <div className="text-[32px] font-black text-black mb-10 tracking-tighter">
-                        OpenLab
+                        ReachInbox
                     </div>
                     {/* User Profile */}
                     <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-2xl mb-8 group cursor-pointer hover:bg-slate-100 transition-colors">
