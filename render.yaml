@@ -4,14 +4,13 @@ databases:
     user: user
     plan: free
 
-services:
-  # 1. Redis (For BullMQ)
-  - type: redis
-    name: email-scheduler-redis
+redisInstances:
+  - name: email-scheduler-redis
     plan: free
     ipAllowList: [] 
 
-  # 2. Backend API (Web Service)
+services:
+  # 1. Backend API (Web Service)
   - type: web
     name: email-scheduler-api
     runtime: node
@@ -24,13 +23,11 @@ services:
           name: email-scheduler-db
           property: connectionString
       - key: REDIS_HOST
-        fromService:
-          type: redis
+        fromRedis:
           name: email-scheduler-redis
           property: host
       - key: REDIS_PORT
-        fromService:
-          type: redis
+        fromRedis:
           name: email-scheduler-redis
           property: port
       - key: PORT
@@ -41,11 +38,11 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         fromService:
-          type: static
+          type: static_site
           name: email-scheduler-frontend
           property: url
 
-  # 3. Email Worker (Background Worker)
+  # 2. Email Worker (Background Worker)
   - type: worker
     name: email-scheduler-worker
     runtime: node
@@ -58,20 +55,18 @@ services:
           name: email-scheduler-db
           property: connectionString
       - key: REDIS_HOST
-        fromService:
-          type: redis
+        fromRedis:
           name: email-scheduler-redis
           property: host
       - key: REDIS_PORT
-        fromService:
-          type: redis
+        fromRedis:
           name: email-scheduler-redis
           property: port
       - key: NODE_ENV
         value: production
 
-  # 4. Frontend (Static Site)
-  - type: static
+  # 3. Frontend (Static Site)
+  - type: static_site
     name: email-scheduler-frontend
     rootDir: client
     buildCommand: npm install && npm run build
