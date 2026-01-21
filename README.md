@@ -1,4 +1,4 @@
-# ReachInbox — Full-stack Email Scheduler
+# ReachInbox 
 
 This repository contains a production-oriented email scheduling service + dashboard implemented as the ReachInbox assignment deliverable.
 

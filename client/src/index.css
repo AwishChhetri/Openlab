@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #00a854;
+  --color-brand-secondary: #f0fdf4;
+  --color-brand-text-main: #111827;
+  --color-brand-text-muted: #6b7280;
+  --color-brand-border: #e5e7eb;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-brand-text-main font-sans antialiased text-[13px] tracking-tight;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply tracking-tighter;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-6 py-2.5 rounded-full font-semibold transition-all duration-200 disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply bg-brand-primary text-white hover:opacity-90 active:scale-95 text-[14px] font-bold;
+  }
+
+  .btn-outline {
+    @apply border border-brand-primary text-brand-primary hover:bg-brand-secondary active:scale-95 text-[14px] font-bold py-2;
+  }
+
+  .nav-item {
+    @apply flex items-center justify-between px-4 py-2.5 rounded-xl transition-colors;
+  }
+
+  .nav-item-active {
+    @apply bg-[#E9F7F0] text-brand-primary font-black;
+  }
+
+  .nav-item-inactive {
+    @apply text-slate-500 hover:bg-slate-50 font-bold;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-brand-border bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl border border-brand-border p-8 shadow-sm;
+  }
+}
