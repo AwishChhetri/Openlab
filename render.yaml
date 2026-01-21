@@ -1,18 +1,17 @@
-services:
-  # 1. Database (Postgres)
-  - type: database
-    name: email-scheduler-db
+databases:
+  - name: email-scheduler-db
     databaseName: email_scheduler
     user: user
     plan: free
 
-  # 2. Redis (For BullMQ)
+services:
+  # 1. Redis (For BullMQ)
   - type: redis
     name: email-scheduler-redis
     plan: free
     ipAllowList: [] 
 
-  # 3. Backend API (Web Service)
+  # 2. Backend API (Web Service)
   - type: web
     name: email-scheduler-api
     runtime: node
@@ -46,7 +45,7 @@ services:
           name: email-scheduler-frontend
           property: url
 
-  # 4. Email Worker (Background Worker)
+  # 3. Email Worker (Background Worker)
   - type: worker
     name: email-scheduler-worker
     runtime: node
@@ -71,7 +70,7 @@ services:
       - key: NODE_ENV
         value: production
 
-  # 5. Frontend (Static Site)
+  # 4. Frontend (Static Site)
   - type: static
     name: email-scheduler-frontend
     rootDir: client
