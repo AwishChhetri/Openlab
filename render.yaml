@@ -53,10 +53,7 @@ services:
       - key: ETHEREAL_APP_PASSWORD
         sync: false
 
-  # 3. Email Worker (Web Service running worker process)
-  # NOTE: Using 'web' type instead of 'worker' because Render free tier
-  # doesn't reliably support background workers. This service runs the
-  # worker process but doesn't expose an HTTP endpoint.
+  # 3. Email Worker 
   - type: web
     name: email-scheduler-worker
     runtime: node
