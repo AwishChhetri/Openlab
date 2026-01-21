@@ -22,19 +22,29 @@ const redisConfig = createRedisConfig();
 
 // Connection for BullMQ (needs maxRetriesPerRequest: null)
 export const createRedisConnection = () => {
-    const redis = new Redis(redisConfig);
     if (typeof redisConfig === 'string') {
-        // For URL-based connections, set maxRetriesPerRequest after creation
+        // URL-based connection
+        const redis = new Redis(redisConfig);
         redis.options.maxRetriesPerRequest = null;
+        return redis;
+    } else {
+        // Options-based connection (already has maxRetriesPerRequest set)
+        return new Redis(redisConfig);
     }
-    return redis;
 };
 
 // General purpose Redis connection (caching, rate limiting)
-export const redisClient = new Redis(redisConfig);
-if (typeof redisConfig === 'string') {
-    redisClient.options.maxRetriesPerRequest = null;
-}
+const createClient = () => {
+    if (typeof redisConfig === 'string') {
+        const client = new Redis(redisConfig);
+        client.options.maxRetriesPerRequest = null;
+        return client;
+    } else {
+        return new Redis(redisConfig);
+    }
+};
+
+export const redisClient = createClient();
 
 redisClient.on('error', (err) => console.error('Redis Client Error', err));
 redisClient.on('connect', () => console.log('Redis Client Connected'));
