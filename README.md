@@ -74,66 +74,50 @@ Persistence:
 
 ---
 
-## Local Development (quickstart)
+## Local Development (Quickstart)
 
-Prerequisites: Node 18+, npm or yarn, Docker (recommended to run Postgres + Redis).
+Prerequisites: Node 18+, Docker (for Postgres & Redis).
 
-1. Start Postgres & Redis (from `server/`):
-
+1. **Start Services** (from `server/`):
 ```bash
 cd server
 docker-compose up -d
 ```
 
-2. Install dependencies
+2. **Setup Environment**:
+   - Create `server/.env` based on `.env.example`.
+   - Ensure `DATABASE_URL` uses port **5433**.
 
+3. **Install & Initialize** (from `server/`):
 ```bash
-# backend
-cd server
 npm install
-
-# frontend (in separate shell)
-cd ../client
-npm install
+npm run migrate
+npm run build
 ```
 
-3. Create a `.env` file in `server/` (see [Environment Variables](#environment-variables)).
-
-4. Run DB migrations (apply schema):
-
+4. **Start Application**:
 ```bash
-# from server/
-node -r dotenv/config ./src/config/db.ts
-# or run the runMigrations helper where available
-node -r dotenv/config ./src/config/db.ts
-# if you prefer, run the SQL directly:
-psql $DATABASE_URL -f src/db/schema.sql
+npm start
 ```
 
-5. Start backend API (dev):
-
+5. **Start Worker** (separate terminal):
 ```bash
-# server
-npm run dev
-# or (compiled)
-npm run build && npm start
+npm run worker
 ```
 
-6. Start worker in a separate terminal:
-
-```bash
-# from server/
-node -r dotenv/config src/workerEntry.ts
-```
-
-7. Start frontend:
-
+6. **Start Frontend** (separate terminal):
 ```bash
 cd client
+npm install
 npm run dev
 ```
 
-Open the frontend (default: `http://localhost:5173`) and log in.
+### Troubleshooting: Port 3000 busy (EADDRINUSE)
+If you see `Error: listen EADDRINUSE: address already in use :::3000`, run:
+```bash
+sudo lsof -t -i:3000 | xargs -r sudo kill -9
+```
+Then try `npm start` again.
 
 ---
 
@@ -143,7 +127,7 @@ Create `server/.env` with these keys (example values shown):
 
 ```
 # Database
-DATABASE_URL=postgres://user:password@localhost:5433/email_scheduler
+DATABASE_URL=postgres://user:password@localhost:5433/email_scheduler # Match docker-compose port
 
 # Redis
 REDIS_HOST=localhost

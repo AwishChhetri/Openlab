@@ -4,8 +4,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Users Table
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  google_id VARCHAR(255) UNIQUE NOT NULL,
+  google_id VARCHAR(255) UNIQUE, -- Nullable for local auth
   email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255), -- For local auth
   name VARCHAR(255),
   avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -30,6 +31,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
   status VARCHAR(50) DEFAULT 'DRAFT', -- DRAFT, PROCESSING, COMPLETED, PAUSED
+  hourly_limit INT DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

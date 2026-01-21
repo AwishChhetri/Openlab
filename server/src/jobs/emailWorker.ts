@@ -8,8 +8,8 @@ import { addEmailJob } from './emailQueue';
 
 // Configure Ethereal transport (or others based on sender)
 // In a real app, we'd look up the sender's credentials from the DB
+// Configure Ethereal transport (or others based on sender)
 const createTransporter = async () => {
-    // For now using env vars for Ethereal, but logic will expand
     return nodemailer.createTransport({
         host: 'smtp.ethereal.email',
         port: 587,
@@ -20,64 +20,59 @@ const createTransporter = async () => {
     });
 };
 
+const stripHtml = (html: string) =>
+    (html || '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
 const processEmailJob = async (job: Job) => {
     const { emailId } = job.data;
-    console.log(`Processing email job ${job.id} for email ${emailId}`);
 
     try {
         // 1. Fetch email details
         const emailResult = await query(
             `SELECT e.*, s.email as sender_email, s.name as sender_name, c.hourly_limit 
-       FROM emails e 
-       JOIN senders s ON e.sender_id = s.id 
-       JOIN campaigns c ON e.campaign_id = c.id
-       WHERE e.id = $1`,
+             FROM emails e 
+             JOIN senders s ON e.sender_id = s.id 
+             JOIN campaigns c ON e.campaign_id = c.id
+             WHERE e.id = $1`,
             [emailId]
         );
 
         if (emailResult.rows.length === 0) {
-            console.error(`Email ${emailId} not found`);
-            return; // Should probably fail job
+            console.error(`[Worker] Email ${emailId} not found`);
+            return;
         }
 
         const email = emailResult.rows[0];
 
         // 1.5 Validate Recipient
         if (!email.recipient || !email.recipient.includes('@')) {
-            console.error(`Invalid recipient for email ${emailId}: "${email.recipient}"`);
+            console.error(`[Worker] Invalid recipient for email ${emailId}: "${email.recipient}"`);
             await query(
                 `UPDATE emails SET status = 'FAILED', error_message = 'Invalid recipient' WHERE id = $1`,
                 [emailId]
             );
-            return; // Exit without throwing to avoid BullMQ retries
+            return;
         }
 
-        // 2. Check rate limits (Per-sender, using campaign specific limit or default)
+        // 2. Check rate limits
         const hourlyLimit = email.hourly_limit || parseInt(process.env.DEFAULT_EMAILS_PER_HOUR || '100');
         const limitCheck = await checkRateLimit(email.sender_id, hourlyLimit);
 
         if (limitCheck.limited) {
-            console.log(`Rate limit reached for sender ${email.sender_id}. Rescheduling email ${emailId}`);
             const delay = limitCheck.nextWindow!.getTime() - Date.now();
+            console.log(`[Worker] Rate limited. Rescheduling ${emailId} in ${Math.round(delay / 1000)}s`);
 
-            // Adding a small buffer (10s) to ensure we are in the next window
-            const uniqueJobId = `${emailId}-retry-${Date.now()}`;
-            await addEmailJob(emailId, delay + 10000, uniqueJobId);
-
-            // Mark current job as "rescheduled" (complete it without sending)
+            await addEmailJob(emailId, delay + 10000, `${emailId}-retry-${Date.now()}`);
             return;
         }
 
         // 3. Send Email
         const transporter = await createTransporter();
-
-        const stripHtml = (html: string) =>
-            (html || '')
-                .replace(/<style[\s\S]*?<\/style>/gi, '')
-                .replace(/<script[\s\S]*?<\/script>/gi, '')
-                .replace(/<[^>]+>/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
 
         const info = await transporter.sendMail({
             from: `"${email.sender_name}" <${email.sender_email}>`,
@@ -87,23 +82,23 @@ const processEmailJob = async (job: Job) => {
             html: email.body,
         });
 
-        console.log(`Email sent: ${info.messageId}`);
-
         // 4. Update DB status
         await query(
             `UPDATE emails SET 
-        status = 'SENT', 
-        sent_at = NOW(), 
-        message_id = $1 
-       WHERE id = $2`,
+             status = 'SENT', 
+             sent_at = NOW(), 
+             message_id = $1 
+             WHERE id = $2`,
             [info.messageId, emailId]
         );
+
+        console.log(`[Worker] SENT: ${email.recipient} (Job: ${job.id})`);
 
         // 5. Update Campaign status if all emails are done
         const campaignId = email.campaign_id;
         const remainingResult = await query(
             `SELECT COUNT(*) FROM emails 
-       WHERE campaign_id = $1 AND (status = 'PENDING' OR status = 'SCHEDULED')`,
+             WHERE campaign_id = $1 AND (status = 'PENDING' OR status = 'SCHEDULED')`,
             [campaignId]
         );
 
@@ -112,25 +107,25 @@ const processEmailJob = async (job: Job) => {
                 `UPDATE campaigns SET status = 'COMPLETED' WHERE id = $1`,
                 [campaignId]
             );
-            console.log(`Campaign ${campaignId} marked as COMPLETED`);
+            console.log(`[Worker] Campaign ${campaignId} COMPLETED`);
         }
 
     } catch (error: any) {
-        console.error(`Failed to send email ${emailId}:`, error);
+        console.error(`[Worker] ERROR: Email ${emailId} failed - ${error.message}`);
 
-        // Update DB with error
         await query(
             `UPDATE emails SET 
-        status = 'FAILED', 
-        error_message = $1,
-        retry_count = retry_count + 1 
-       WHERE id = $2`,
+             status = 'FAILED', 
+             error_message = $1,
+             retry_count = retry_count + 1 
+             WHERE id = $2`,
             [error.message, emailId]
         );
 
         throw error; // Let BullMQ handle retry
     }
 };
+
 
 export const initWorker = () => {
     const worker = new Worker(EMAIL_QUEUE_NAME, processEmailJob, {
@@ -142,12 +137,8 @@ export const initWorker = () => {
         },
     });
 
-    worker.on('completed', job => {
-        console.log(`Job ${job.id} completed!`);
-    });
-
     worker.on('failed', (job, err) => {
-        console.log(`Job ${job?.id} failed with ${err.message}`);
+        // Detailed error for failed jobs is already logged in processEmailJob
     });
 
     return worker;
