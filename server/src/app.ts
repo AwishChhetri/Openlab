@@ -11,6 +11,9 @@ import campaignRoutes from './routes/campaignRoutes';
 
 const app: Express = express();
 
+// Trust proxy for Render/Vercel (needed for secure cookies and correct redirect URIs)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet());
 app.use(cors({
