@@ -9,14 +9,16 @@ services:
   - type: redis
     name: email-scheduler-redis
     plan: free
-    ipAllowList: [] # Adjust if you need external access
+    ipAllowList: []
 
-  # 2. Backend API (Web Service)
+  # 2. Backend API (Web Service - Node.js Runtime)
   - type: web
     name: email-scheduler-api
-    runtime: docker
+    runtime: node
     rootDir: server
     plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -43,21 +45,22 @@ services:
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
-        sync: false 
+        sync: false
       - key: GOOGLE_CALLBACK_URL
         value: https://email-scheduler-api-x4np.onrender.com/api/auth/google/callback
       - key: ETHEREAL_APP_EMAIL
-        sync: false 
+        sync: false
       - key: ETHEREAL_APP_PASSWORD
-        sync: false 
+        sync: false
 
-  # 3. Email Worker (Background Worker)
+  # 3. Email Worker (Background Worker - Node.js Runtime)
   - type: worker
     name: email-scheduler-worker
-    runtime: docker
+    runtime: node
     rootDir: server
-    plan: free
-    dockerCommand: npm run start:worker
+    plan: free # Note: Render free tier support for background workers varies by region.
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:worker
     envVars:
       - key: DATABASE_URL
         fromDatabase:
