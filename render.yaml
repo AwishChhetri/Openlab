@@ -39,15 +39,15 @@ services:
       - key: SESSION_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://email-scheduler-api-x4np.onrender.com # UPDATE THIS
+        value: https://openlab-gzmn.vercel.app
       - key: GOOGLE_CLIENT_ID
-        sync: false # Set in dashboard
+        sync: false
       - key: GOOGLE_CLIENT_SECRET
-        sync: false # Set in dashboard
+        sync: false 
       - key: ETHEREAL_APP_EMAIL
-        sync: false # Set in dashboard
+        sync: false 
       - key: ETHEREAL_APP_PASSWORD
-        sync: false # Set in dashboard
+        sync: false 
 
   # 3. Email Worker (Background Worker)
   - type: worker
