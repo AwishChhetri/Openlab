@@ -23,7 +23,11 @@ const redisStore = new RedisStore({
 app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: [
+        'http://localhost:5173',
+        'https://emails.up.railway.app',
+        /\.vercel\.app$/ // Matches any Vercel deployment subdomain
+    ],
     credentials: true
 }));
 app.use(express.json());
@@ -35,7 +39,8 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: true, // Required for sameSite: 'none'
+        sameSite: 'none', // Required for cross-domain (Vercel -> Railway)
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
