@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { usePendingRequests } from '../hooks/usePendingRequests';
 
-export const API_URL = import.meta.env.VITE_API_URL || 'https://emails.up.railway.app';
+export const API_URL = import.meta.env.VITE_API_URL || 'https://email-scheduler-worker-0ul3.onrender.com';
 
 const api = axios.create({
     baseURL: API_URL,
