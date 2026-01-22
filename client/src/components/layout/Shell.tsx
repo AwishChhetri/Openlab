@@ -27,8 +27,12 @@ export const Shell = () => {
     const location = useLocation();
     const [stats, setStats] = useState({ sent: 0, scheduled: 0 });
 
+    const [isFetching, setIsFetching] = useState(false);
+
     useEffect(() => {
         const fetchStats = async () => {
+            if (isFetching) return;
+            setIsFetching(true);
             try {
                 const res = await api.get('/api/campaigns/stats/summary');
                 setStats({
@@ -37,12 +41,14 @@ export const Shell = () => {
                 });
             } catch (err) {
                 // Silently fail stats fetch
+            } finally {
+                setIsFetching(false);
             }
         };
         fetchStats();
         const interval = setInterval(fetchStats, 10000);
         return () => clearInterval(interval);
-    }, []);
+    }, [isFetching]);
 
     return (
         <div className="min-h-screen flex bg-white">

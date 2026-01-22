@@ -16,9 +16,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+import { ProgressBar } from './components/common/ProgressBar';
+
 function App() {
   return (
     <AuthProvider>
+      <ProgressBar />
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
