@@ -10,7 +10,6 @@ export const ProgressBar = () => {
         if (isLoading) {
             setVisible(true);
         } else {
-            // Slight delay before hiding to avoid flickering for very fast requests
             timeout = setTimeout(() => setVisible(false), 300);
         }
         return () => clearTimeout(timeout);
