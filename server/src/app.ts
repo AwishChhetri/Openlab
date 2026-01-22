@@ -22,7 +22,8 @@ const redisStore = new RedisStore({
 // Security & Proxy
 app.set('trust proxy', 1);
 app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" }
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: false, // Disable CSP to avoid blocking cross-domain AJAX/OAuth
 }));
 
 const allowedOrigins = [
@@ -45,6 +46,7 @@ app.use(cors({
         if (isAllowed) {
             callback(null, true);
         } else {
+            console.warn(`[CORS] Rejected origin: ${origin}`);
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -53,15 +55,19 @@ app.use(cors({
 app.use(express.json());
 
 // Session
-const isProd = process.env.NODE_ENV === 'production';
+// Force production flags if on Railway/Render even if NODE_ENV is missing
+const isProductionDomain = process.env.RAILWAY_STATIC_URL || process.env.RENDER_EXTERNAL_URL || process.env.NODE_ENV === 'production';
+
+console.log(`[Session] Configured for ${isProductionDomain ? 'Production' : 'Development'} mode`);
+
 app.use(session({
     store: redisStore,
     secret: process.env.SESSION_SECRET || 'keyboard cat',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: isProd, // Only secure in production
-        sameSite: isProd ? 'none' : 'lax', // none for cross-domain prod, lax for local
+        secure: !!isProductionDomain,
+        sameSite: isProductionDomain ? 'none' : 'lax',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
