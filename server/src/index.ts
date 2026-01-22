@@ -10,8 +10,8 @@ const startServer = async () => {
         await runMigrations();
 
         const port = process.env.PORT || 3000;
-        app.listen(port, () => {
-            console.log(`[server]: Server is running at http://localhost:${port}`);
+        app.listen(port, '0.0.0.0', () => {
+            console.log(`[server]: Server running on 0.0.0.0:${port}`);
         });
     } catch (err) {
         console.error('[server]: Failed to start server:', err);
