@@ -55,7 +55,7 @@ The frontend can be deployed to [Vercel](https://vercel.com).
 
 1. **Root Directory**: In Vercel Project Settings, set **Root Directory** to `client`.
 2. **Framework Preset**: Ensure it is set to **Vite**.
-3. **Environment Variables**: Set `VITE_API_URL` to your production backend URL.
+3. **Environment Variables**: Set `VITE_API_URL` to `https://emails.up.railway.app`.
 
 ## Verification Checklist
 - [x] Local builds passing (`npm run build`)

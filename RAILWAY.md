@@ -33,10 +33,10 @@ Create **4 services** in your Railway project:
      PORT=3000
      NODE_ENV=production
      SESSION_SECRET=<generate-random-string>
-     FRONTEND_URL=https://openlab-gzmn.vercel.app
+     FRONTEND_URL=https://openlab-nine.vercel.app
      GOOGLE_CLIENT_ID=<your-google-client-id>
      GOOGLE_CLIENT_SECRET=<your-google-client-secret>
-     GOOGLE_CALLBACK_URL=https://<your-api-domain>.railway.app/api/auth/google/callback
+     GOOGLE_CALLBACK_URL=https://emails.up.railway.app/api/auth/google/callback
      ETHEREAL_APP_EMAIL=<your-ethereal-email>
      ETHEREAL_APP_PASSWORD=<your-ethereal-password>
      ```

@@ -21,26 +21,47 @@ const redisStore = new RedisStore({
 
 // Security & Proxy
 app.set('trust proxy', 1);
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://emails.up.railway.app',
+    'https://openlab-nine.vercel.app',
+    process.env.FRONTEND_URL
+].filter(Boolean) as string[];
+
 app.use(cors({
-    origin: [
-        'http://localhost:5173',
-        'https://emails.up.railway.app',
-        /\.vercel\.app$/ // Matches any Vercel deployment subdomain
-    ],
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+
+        const isAllowed = allowedOrigins.some(o => o === origin) ||
+            origin.endsWith('.vercel.app') ||
+            origin.endsWith('.up.railway.app');
+
+        if (isAllowed) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 app.use(express.json());
 
 // Session
+const isProd = process.env.NODE_ENV === 'production';
 app.use(session({
     store: redisStore,
     secret: process.env.SESSION_SECRET || 'keyboard cat',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: true, // Required for sameSite: 'none'
-        sameSite: 'none', // Required for cross-domain (Vercel -> Railway)
+        secure: isProd, // Only secure in production
+        sameSite: isProd ? 'none' : 'lax', // none for cross-domain prod, lax for local
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
