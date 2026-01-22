@@ -1,87 +1,14 @@
-import { useEffect, useState } from 'react';
-import api from '../api/axios';
 import { Search, Filter, RotateCcw, Star, Paperclip, Clock } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-
-interface Email {
-    id: string;
-    recipient: string;
-    subject: string;
-    body: string;
-    status: string;
-    scheduled_at: string;
-    sent_at: string;
-    sender_name?: string;
-}
-
-const stripHtml = (html: string) =>
-    (html || '')
-        .replace(/<style[\s\S]*?<\/style>/gi, '')
-        .replace(/<script[\s\S]*?<\/script>/gi, '')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-const truncate = (text: string, len = 120) =>
-    text.length > len ? text.slice(0, len) + '…' : text;
+import { useEmails } from '../hooks/useEmails';
+import type { Email } from '../hooks/useEmails';
+import { stripHtml, truncate } from '../utils/text';
 
 export const Dashboard = () => {
-    const [emails, setEmails] = useState<Email[]>([]);
-    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
-
     const location = useLocation();
     const isSentView = location.pathname === '/senders';
-    const isScheduledView = location.pathname === '/dashboard';
-
-    useEffect(() => {
-        const fetchEmails = async () => {
-            setLoading(true);
-            try {
-                // Fetch all campaigns
-                const campaignsRes = await api.get('/api/campaigns');
-
-                if (campaignsRes.data.length > 0) {
-                    // Fetch emails from all campaigns and aggregate them
-                    const emailPromises = campaignsRes.data.map((campaign: any) =>
-                        api.get(`/api/campaigns/${campaign.id}/emails`)
-                    );
-
-                    const emailResponses = await Promise.all(emailPromises);
-
-                    // Flatten all emails into a single array
-                    let allEmails = emailResponses.flatMap(res => res.data);
-
-                    // Filter based on current view
-                    if (isSentView) {
-                        // Show only SENT emails
-                        allEmails = allEmails.filter(email => email.status === 'SENT');
-                    } else if (isScheduledView) {
-                        // Show only SCHEDULED and PENDING emails
-                        allEmails = allEmails.filter(email =>
-                            email.status === 'SCHEDULED' || email.status === 'PENDING'
-                        );
-                    }
-
-                    // Sort by sent_at or scheduled_at (most recent first)
-                    allEmails.sort((a, b) => {
-                        const dateA = new Date(a.sent_at || a.scheduled_at || a.created_at);
-                        const dateB = new Date(b.sent_at || b.scheduled_at || b.created_at);
-                        return dateB.getTime() - dateA.getTime();
-                    });
-
-                    setEmails(allEmails);
-                } else {
-                    setEmails([]);
-                }
-            } catch (err) {
-                console.error(err);
-                setEmails([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchEmails();
-    }, [location.pathname, isSentView, isScheduledView]);
+    const { emails, loading } = useEmails(isSentView ? 'sent' : 'scheduled');
 
     return (
         <div className="flex flex-col h-screen relative">

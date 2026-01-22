@@ -36,7 +36,7 @@ export const Shell = () => {
                     scheduled: parseInt(res.data.scheduled || '0')
                 });
             } catch (err) {
-                console.error('Error fetching stats:', err);
+                // Silently fail stats fetch
             }
         };
         fetchStats();

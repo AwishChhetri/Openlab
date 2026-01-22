@@ -5,28 +5,21 @@ import { query } from '../config/db';
 import nodemailer from 'nodemailer';
 import { checkRateLimit } from '../utils/rateLimiter';
 import { addEmailJob } from './emailQueue';
+import { stripHtml } from '../utils/text';
 
 // Configure Ethereal transport (or others based on sender)
 // In a real app, we'd look up the sender's credentials from the DB
-// Configure Ethereal transport (or others based on sender)
+// Fallback Ethereal transporter
 const createTransporter = async () => {
     return nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
+        host: process.env.ETHEREAL_SMTP_HOST || 'smtp.ethereal.email',
+        port: parseInt(process.env.ETHEREAL_SMTP_PORT || '587'),
         auth: {
             user: process.env.ETHEREAL_APP_EMAIL,
             pass: process.env.ETHEREAL_APP_PASSWORD,
         },
     });
 };
-
-const stripHtml = (html: string) =>
-    (html || '')
-        .replace(/<style[\s\S]*?<\/style>/gi, '')
-        .replace(/<script[\s\S]*?<\/script>/gi, '')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
 
 const processEmailJob = async (job: Job) => {
     const { emailId } = job.data;
@@ -94,20 +87,16 @@ const processEmailJob = async (job: Job) => {
 
         console.log(`[Worker] SENT: ${email.recipient} (Job: ${job.id})`);
 
-        // 5. Update Campaign status if all emails are done
-        const campaignId = email.campaign_id;
-        const remainingResult = await query(
+        // 5. Check if campaign is finished
+        const remaining = await query(
             `SELECT COUNT(*) FROM emails 
-             WHERE campaign_id = $1 AND (status = 'PENDING' OR status = 'SCHEDULED')`,
-            [campaignId]
+             WHERE campaign_id = $1 AND status IN ('PENDING', 'SCHEDULED')`,
+            [email.campaign_id]
         );
 
-        if (parseInt(remainingResult.rows[0].count) === 0) {
-            await query(
-                `UPDATE campaigns SET status = 'COMPLETED' WHERE id = $1`,
-                [campaignId]
-            );
-            console.log(`[Worker] Campaign ${campaignId} COMPLETED`);
+        if (parseInt(remaining.rows[0].count) === 0) {
+            await query(`UPDATE campaigns SET status = 'COMPLETED' WHERE id = $1`, [email.campaign_id]);
+            console.log(`[Worker] Campaign ${email.campaign_id} COMPLETED`);
         }
 
     } catch (error: any) {
