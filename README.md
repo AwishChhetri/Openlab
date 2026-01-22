@@ -49,6 +49,14 @@ The project is optimized for [Railway](https://railway.app).
 2. **Postgres & Redis**: Add Postgres and Redis plugins from the Railway dashboard.
 3. **Automated Setup**: The `railway.json` file handles the multi-service build and deployment of both the API and the Worker.
 
+## Deployment (Vercel)
+
+The frontend can be deployed to [Vercel](https://vercel.com).
+
+1. **Root Directory**: In Vercel Project Settings, set **Root Directory** to `client`.
+2. **Framework Preset**: Ensure it is set to **Vite**.
+3. **Environment Variables**: Set `VITE_API_URL` to your production backend URL.
+
 ## Verification Checklist
 - [x] Local builds passing (`npm run build`)
 - [x] Docker services healthy

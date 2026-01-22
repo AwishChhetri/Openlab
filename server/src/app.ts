@@ -1,5 +1,7 @@
 import express, { Express, Request, Response } from 'express';
 import session from 'express-session';
+import { RedisStore } from 'connect-redis';
+import { redisClient } from './config/redis';
 import helmet from 'helmet';
 import cors from 'cors';
 import passport from './config/passport';
@@ -10,6 +12,12 @@ import campaignRoutes from './routes/campaignRoutes';
 import { errorHandler, asyncHandler } from './utils/errors';
 
 const app: Express = express();
+
+// Initialize RedisStore
+const redisStore = new RedisStore({
+    client: redisClient,
+    prefix: 'sess:'
+});
 
 // Security & Proxy
 app.set('trust proxy', 1);
@@ -22,6 +30,7 @@ app.use(express.json());
 
 // Session
 app.use(session({
+    store: redisStore,
     secret: process.env.SESSION_SECRET || 'keyboard cat',
     resave: false,
     saveUninitialized: false,
