@@ -13,85 +13,99 @@ import { errorHandler, asyncHandler } from './utils/errors';
 
 const app: Express = express();
 
-// Initialize RedisStore
+/* -------------------- Redis Session Store -------------------- */
 const redisStore = new RedisStore({
-    client: redisClient,
-    prefix: 'sess:'
+  client: redisClient,
+  prefix: 'sess:',
 });
 
-// Security & Proxy
+/* -------------------- Security / Proxy -------------------- */
 app.set('trust proxy', 1);
-app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-    contentSecurityPolicy: false, // Disable CSP to avoid blocking cross-domain AJAX/OAuth
-}));
 
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false,
+  })
+);
+
+/* -------------------- CORS -------------------- */
 const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://emails.up.railway.app',
-    'https://openlab-nine.vercel.app',
-    process.env.FRONTEND_URL
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://emails.up.railway.app',
+  'https://openlab-nine.vercel.app',
+  process.env.FRONTEND_URL,
 ].filter(Boolean) as string[];
 
-app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl)
-        if (!origin) return callback(null, true);
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
 
-        const isAllowed = allowedOrigins.some(o => o === origin) ||
-            origin.endsWith('.vercel.app') ||
-            origin.endsWith('.up.railway.app');
+    const isAllowed =
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('.up.railway.app');
 
-        if (isAllowed) {
-            callback(null, true);
-        } else {
-            console.warn(`[CORS] Rejected origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true
-}));
+    callback(null, isAllowed);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: '*',
+};
+
+/* 🔑 PRE-FLIGHT FIX */
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
+
 app.use(express.json());
 
-// Session
-// Force production flags if on Railway/Render even if NODE_ENV is missing
-const isProductionDomain = process.env.RAILWAY_STATIC_URL || process.env.RENDER_EXTERNAL_URL || process.env.NODE_ENV === 'production';
+/* -------------------- Session -------------------- */
+const isProduction =
+  !!process.env.RAILWAY_STATIC_URL ||
+  !!process.env.RAILWAY_PUBLIC_DOMAIN ||
+  !!process.env.RENDER_EXTERNAL_URL ||
+  process.env.NODE_ENV === 'production';
 
-console.log(`[Session] Configured for ${isProductionDomain ? 'Production' : 'Development'} mode`);
+console.log(`[Session] ${isProduction ? 'Production' : 'Development'} mode`);
 
-app.use(session({
+app.use(
+  session({
     store: redisStore,
     secret: process.env.SESSION_SECRET || 'keyboard cat',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: !!isProductionDomain,
-        sameSite: isProductionDomain ? 'none' : 'lax',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
-}));
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    },
+  })
+);
 
-// Auth
+/* -------------------- Auth -------------------- */
 app.use(passport.initialize());
 app.use(passport.session());
 
-// API Routes
+/* -------------------- Routes -------------------- */
 app.use('/api/auth', authRoutes);
 app.use('/api/senders', senderRoutes);
 app.use('/api/campaigns', campaignRoutes);
 
-// Health check
-app.get('/health', asyncHandler(async (req: Request, res: Response) => {
+/* -------------------- Health -------------------- */
+app.get(
+  '/health',
+  asyncHandler(async (_req: Request, res: Response) => {
     const dbRes = await query('SELECT NOW()');
     res.json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        db: dbRes.rows[0] ? 'connected' : 'disconnected'
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      db: dbRes.rows?.length ? 'connected' : 'disconnected',
     });
-}));
+  })
+);
 
-// Final Error Handling
+/* -------------------- Error Handler -------------------- */
 app.use(errorHandler);
 
 export default app;
