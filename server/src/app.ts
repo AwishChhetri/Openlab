@@ -7,7 +7,7 @@ import { query } from './config/db';
 import authRoutes from './routes/authRoutes';
 import senderRoutes from './routes/senderRoutes';
 import campaignRoutes from './routes/campaignRoutes';
-import { errorHandler } from './utils/errors';
+import { errorHandler, asyncHandler } from './utils/errors';
 
 const app: Express = express();
 
@@ -41,14 +41,14 @@ app.use('/api/senders', senderRoutes);
 app.use('/api/campaigns', campaignRoutes);
 
 // Health check
-app.get('/health', async (req: Request, res: Response) => {
+app.get('/health', asyncHandler(async (req: Request, res: Response) => {
     const dbRes = await query('SELECT NOW()');
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
         db: dbRes.rows[0] ? 'connected' : 'disconnected'
     });
-});
+}));
 
 // Final Error Handling
 app.use(errorHandler);
